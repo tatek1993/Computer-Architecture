@@ -122,7 +122,7 @@ class CPU:
                 self.reg[operand_a] = operand_b
                 self.pc += 3
 
-            elif IR == "MUL":
+            elif IR == MUL:
                 self.reg[operand_a] *= self.reg[operand_b]
                 self.pc += 3
 
