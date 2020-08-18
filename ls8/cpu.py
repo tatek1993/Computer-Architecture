@@ -2,12 +2,27 @@
 
 import sys
 
+HLT = 0b00000001
+PRN = 0b01000111
+LDI = 0b10000010
+
+
 class CPU:
     """Main CPU class."""
-
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.running = True
+        self.pc = 0
+
+    # Memory Address Register
+    def ram_read(self, MAR):
+        return self.ram[MAR]
+
+    # Memory Address Register, Memory Data Register
+    def ram_write(self, MAR, MDR):
+        self.ram[MAR] = MDR
 
     def load(self):
         """Load a program into memory."""
@@ -18,18 +33,17 @@ class CPU:
 
         program = [
             # From print8.ls8
-            0b10000010, # LDI R0,8
+            0b10000010,  # LDI R0,8
             0b00000000,
             0b00001000,
-            0b01000111, # PRN R0
+            0b01000111,  # PRN R0
             0b00000000,
-            0b00000001, # HLT
+            0b00000001,  # HLT
         ]
 
         for instruction in program:
             self.ram[address] = instruction
             address += 1
-
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -46,14 +60,15 @@ class CPU:
         from run() if you need help debugging.
         """
 
-        print(f"TRACE: %02X | %02X %02X %02X |" % (
-            self.pc,
-            #self.fl,
-            #self.ie,
-            self.ram_read(self.pc),
-            self.ram_read(self.pc + 1),
-            self.ram_read(self.pc + 2)
-        ), end='')
+        print(
+            f"TRACE: %02X | %02X %02X %02X |" % (
+                self.pc,
+                #self.fl,
+                #self.ie,
+                self.ram_read(self.pc),
+                self.ram_read(self.pc + 1),
+                self.ram_read(self.pc + 2)),
+            end='')
 
         for i in range(8):
             print(" %02X" % self.reg[i], end='')
@@ -62,4 +77,27 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        while self.running:
+            # IR is the instruction register
+            IR = self.ram_read(self.pc)
+            # we read the memory
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            # exits the action
+            if IR == HLT:
+                self.running = False
+
+            # print a register's value
+            elif IR == PRN:
+                print(self.reg[operand_a])
+                self.pc += 2
+
+            # we set a register to a value
+            elif IR == LDI:
+                self.reg[operand_a] = [operand_b]
+                self.pc += 3
+
+            else:
+                print("That is not a valid command")
+                self.running = False
