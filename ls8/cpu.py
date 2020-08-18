@@ -24,26 +24,34 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
 
         address = 0
 
+        with open(filename) as f:
+            for line in f:
+                comment_split = line.split('#')
+                n = comment_split[0].strip()
+
+                if n == '':
+                    continue
+
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -79,8 +87,9 @@ class CPU:
         """Run the CPU."""
         while self.running:
             # IR is the instruction register
+            # read the op code for this instruction into the IR
             IR = self.ram_read(self.pc)
-            # we read the memory
+            # we read the memory in these pc slots given, in case they are used later
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
@@ -95,7 +104,7 @@ class CPU:
 
             # we set a register to a value
             elif IR == LDI:
-                self.reg[operand_a] = [operand_b]
+                self.reg[operand_a] = operand_b
                 self.pc += 3
 
             else:
