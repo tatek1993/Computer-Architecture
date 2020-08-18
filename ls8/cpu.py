@@ -5,6 +5,7 @@ import sys
 HLT = 0b00000001
 PRN = 0b01000111
 LDI = 0b10000010
+MUL = 0b10100010
 
 
 class CPU:
@@ -27,15 +28,25 @@ class CPU:
     def load(self, filename):
         """Load a program into memory."""
 
-        address = 0
+        try:
+            address = 0
 
-        with open(filename) as f:
-            for line in f:
-                comment_split = line.split('#')
-                n = comment_split[0].strip()
+            with open(filename) as f:
+                for line in f:
+                    comment_split = line.split('#')
+                    byte = comment_split[0].strip()
 
-                if n == '':
-                    continue
+                    if byte == '':
+                        continue
+
+                    dec = int(byte, 2)
+                    self.ram[address] = dec
+                    # incr so we will not overwrite next time
+                    address += 1
+
+        except FileNotFoundError:
+            print(f"{sys.argv[0]}: {filename} not found")
+            sys.exit(2)
 
         # For now, we've just hardcoded a program:
 
@@ -59,6 +70,10 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -105,6 +120,10 @@ class CPU:
             # we set a register to a value
             elif IR == LDI:
                 self.reg[operand_a] = operand_b
+                self.pc += 3
+
+            elif IR == "MUL":
+                self.reg[operand_a] *= self.reg[operand_b]
                 self.pc += 3
 
             else:
