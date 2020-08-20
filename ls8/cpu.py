@@ -9,6 +9,8 @@ MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
 
+stack_pointer = 7
+
 
 class CPU:
     """Main CPU class."""
@@ -25,8 +27,7 @@ class CPU:
         self.branchtable[MUL] = self.handle_MUL
         self.branchtable[PUSH] = self.handle_PUSH
         self.branchtable[POP] = self.handle_POP
-        self.sp = 0xf4
-        self.reg[7] = self.sp
+        self.reg[stack_pointer] = 0xf4
         # self.reg[sp] = 244
 
     # Memory Address Register
@@ -57,20 +58,22 @@ class CPU:
 
     def handle_PUSH(self, a, _):
         # with push we decrement sp
-        self.sp -= 1
-        # address
-        reg_index = self.ram_read(self.pc + 1)
+        self.reg[stack_pointer] -= 1
         # set the value to that slot
-        reg_value = self.reg[reg_index]
-        self.ram_write(self.reg[7], reg_value)
+        reg_value = self.reg[a]
+        self.ram_write(self.reg[stack_pointer], reg_value)
+        self.pc += 2
 
     def handle_POP(self, a, _):
-        # with pop we increment sp
-        #
-        sp_value = self.ram_read(self.reg[7])
-        reg_index = self.ram_read(self.pc + 1)
-        self.reg[reg_index] = sp_value
-        self.pc += 1
+
+        # the value where the sp is pointing
+        sp_value = self.ram_read(self.reg[stack_pointer])
+        # set the value to the register at the index we pass in
+        self.reg[a] = sp_value
+        self.pc += 2
+
+        # after pop we increment sp
+        self.reg[stack_pointer] += 1
 
     def load(self, filename):
         """Load a program into memory."""
@@ -160,6 +163,10 @@ class CPU:
             if IR in self.branchtable:
                 cmnd = self.branchtable[IR]
                 cmnd(operand_a, operand_b)
+
+            else:
+                print(f"{IR} is not a valid command")
+                self.running = False
 
             # # exits the action
             # if IR == HLT:
