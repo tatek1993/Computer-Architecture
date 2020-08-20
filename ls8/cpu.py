@@ -6,6 +6,8 @@ HLT = 0b00000001
 PRN = 0b01000111
 LDI = 0b10000010
 MUL = 0b10100010
+PUSH = 0b01000101
+POP = 0b01000110
 
 
 class CPU:
@@ -16,6 +18,16 @@ class CPU:
         self.reg = [0] * 8
         self.running = True
         self.pc = 0
+        self.branchtable = {}
+        self.branchtable[HLT] = self.handle_HLT
+        self.branchtable[PRN] = self.handle_PRN
+        self.branchtable[LDI] = self.handle_LDI
+        self.branchtable[MUL] = self.handle_MUL
+        self.branchtable[PUSH] = self.handle_PUSH
+        self.branchtable[POP] = self.handle_POP
+        self.sp = 0xf4
+        self.reg[7] = self.sp
+        # self.reg[sp] = 244
 
     # Memory Address Register
     def ram_read(self, MAR):
@@ -24,6 +36,41 @@ class CPU:
     # Memory Address Register, Memory Data Register
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
+
+    def handle_HLT(self, _a, _b):
+        self.running = False
+
+    # print a register's value
+    def handle_PRN(self, a, _):
+        print(self.reg[a])
+        self.pc += 2
+
+    # we set a register to a value
+    def handle_LDI(self, a, b):
+        self.reg[a] = b
+        self.pc += 3
+
+    def handle_MUL(self, a, b):
+        self.alu("MUL", a, b)
+        # self.reg[a] *= self.reg[b]
+        self.pc += 3
+
+    def handle_PUSH(self, a, _):
+        # with push we decrement sp
+        self.sp -= 1
+        # address
+        reg_index = self.ram_read(self.pc + 1)
+        # set the value to that slot
+        reg_value = self.reg[reg_index]
+        self.ram_write(self.reg[7], reg_value)
+
+    def handle_POP(self, a, _):
+        # with pop we increment sp
+        #
+        sp_value = self.ram_read(self.reg[7])
+        reg_index = self.ram_read(self.pc + 1)
+        self.reg[reg_index] = sp_value
+        self.pc += 1
 
     def load(self, filename):
         """Load a program into memory."""
@@ -40,7 +87,9 @@ class CPU:
                         continue
 
                     dec = int(byte, 2)
-                    self.ram[address] = dec
+
+                    self.ram_write(address, dec)
+
                     # incr so we will not overwrite next time
                     address += 1
 
@@ -108,24 +157,28 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            # exits the action
-            if IR == HLT:
-                self.running = False
+            if IR in self.branchtable:
+                cmnd = self.branchtable[IR]
+                cmnd(operand_a, operand_b)
 
-            # print a register's value
-            elif IR == PRN:
-                print(self.reg[operand_a])
-                self.pc += 2
+            # # exits the action
+            # if IR == HLT:
+            #     self.running = False
 
-            # we set a register to a value
-            elif IR == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
+            # # print a register's value
+            # elif IR == PRN:
+            #     print(self.reg[operand_a])
+            #     self.pc += 2
 
-            elif IR == MUL:
-                self.reg[operand_a] *= self.reg[operand_b]
-                self.pc += 3
+            # # we set a register to a value
+            # elif IR == LDI:
+            #     self.reg[operand_a] = operand_b
+            #     self.pc += 3
 
-            else:
-                print("That is not a valid command")
-                self.running = False
+            # elif IR == MUL:
+            #     self.alu("MUL", operand_a, operand_b)
+            #     self.pc += 3
+
+            # else:
+            #     print("That is not a valid command")
+            #     self.running = False
