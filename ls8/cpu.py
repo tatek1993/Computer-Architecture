@@ -5,9 +5,12 @@ import sys
 HLT = 0b00000001
 PRN = 0b01000111
 LDI = 0b10000010
+ADD = 0b10100000
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
+CALL = 0b01010000
+RET = 0b00010001
 
 stack_pointer = 7
 
@@ -24,9 +27,12 @@ class CPU:
         self.branchtable[HLT] = self.handle_HLT
         self.branchtable[PRN] = self.handle_PRN
         self.branchtable[LDI] = self.handle_LDI
+        self.branchtable[ADD] = self.handle_ADD
         self.branchtable[MUL] = self.handle_MUL
         self.branchtable[PUSH] = self.handle_PUSH
         self.branchtable[POP] = self.handle_POP
+        self.branchtable[CALL] = self.handle_CALL
+        self.branchtable[RET] = self.handle_RET
         self.reg[stack_pointer] = 0xf4
         # self.reg[sp] = 244
 
@@ -56,6 +62,11 @@ class CPU:
         # self.reg[a] *= self.reg[b]
         self.pc += 3
 
+    def handle_ADD(self, a, b):
+        self.alu("ADD", a, b)
+        # self.reg[a] *= self.reg[b]
+        self.pc += 3
+
     def handle_PUSH(self, a, _):
         # with push we decrement sp
         self.reg[stack_pointer] -= 1
@@ -73,6 +84,23 @@ class CPU:
         self.pc += 2
 
         # after pop we increment sp
+        self.reg[stack_pointer] += 1
+
+    def handle_CALL(self, a, _b):
+        # push return address on to the stack
+        # setting return address to next instruction
+        return_address = self.pc + 2
+        # decrement stack pointer
+        # to set us up to add next thing to stack
+        self.reg[stack_pointer] -= 1
+        # store the return address in the stack
+        self.ram_write(self.reg[stack_pointer], return_address)
+        # move to the subroutine call
+        self.pc = self.reg[a]
+
+    def handle_RET(self, a, b):
+        return_address = self.ram[self.reg[stack_pointer]]
+        self.pc = return_address
         self.reg[stack_pointer] += 1
 
     def load(self, filename):
@@ -166,6 +194,7 @@ class CPU:
 
             else:
                 print(f"{IR} is not a valid command")
+                print('memory address', self.pc)
                 self.running = False
 
             # # exits the action
